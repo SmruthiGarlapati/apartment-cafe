@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import { ItemSheet } from './App'
+import Setup from './Setup'
 
 const ERRORS = {
   FORBIDDEN: 'This account is not set up as a barista.',
@@ -85,6 +86,7 @@ function Dashboard({ me }) {
   const [walkIn, setWalkIn] = useState(false)
   const [showCancelled, setShowCancelled] = useState(false)
   const [sound, setSound] = useState(false)
+  const [setup, setSetup] = useState(false)
   const audio = useRef(null)
   const seen = useRef(null)
   const loadRef = useRef(() => {})
@@ -191,7 +193,12 @@ function Dashboard({ me }) {
     )
   }
 
-  if (!session) return <div className="adm"><h1>No active session</h1><p className="muted">Set a session to active in Supabase (or run activate_session).</p></div>
+  if (setup) return <Setup onClose={() => { setSetup(false); load() }} />
+  if (!session) return (
+    <div className="adm"><h1>No active session</h1>
+      <p className="muted">Create or activate a session to start taking orders.</p>
+      <button className="btn" onClick={() => setSetup(true)}>Menu & sessions</button></div>
+  )
 
   const setSessionField = async (patch) => { await supabase.from('sessions').update(patch).eq('id', session.id); await load() }
   const rotate = async () => {
@@ -218,6 +225,7 @@ function Dashboard({ me }) {
           <span>Code: <strong style={{ fontSize: 20, letterSpacing: 2 }}>{passcode}</strong></span>
           <button className="btn ghost sm" onClick={rotate}>Change</button>
           <button className="btn ghost sm" onClick={sound ? () => setSound(false) : enableSound}>{sound ? '🔔 Sound on' : '🔕 Sound off'}</button>
+          <button className="btn ghost" onClick={() => setSetup(true)}>Menu & sessions</button>
           <button className="btn" onClick={() => setWalkIn(true)}>+ New order</button>
           <button className="btn ghost sm" onClick={() => supabase.auth.signOut()}>Sign out ({me.name})</button>
         </div>

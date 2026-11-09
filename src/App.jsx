@@ -79,29 +79,43 @@ export default function App() {
   if (view === 'checkout') return <Checkout session={session} cart={cart} setCart={setCart} onBack={() => setView('menu')} onPlaced={placed} />
 
   return (
-    <div className="wrap">
-      <h1>{session.title}</h1>
-      <div className="muted">{session.description}</div>
-      <div className="muted">{session.venue_note}</div>
-      {token && <div className="card row"><span>You have an order in.</span><button className="btn ghost" style={{ width: 'auto' }} onClick={() => setView('order')}>View order</button></div>}
-      {closed && <div className="banner">Ordering is {session.status === 'upcoming' ? 'not open yet' : 'closed'}. You can still browse the menu.</div>}
-      {!closed && paused && <div className="banner">{session.pause_message || 'Ordering is paused for a moment.'}</div>}
-      <p className="muted">Made in a home kitchen. Please check allergens before you order.</p>
-      {items.map((it) => {
-        const label = stockLabel(it, session.low_stock_threshold)
-        const out = label === 'Sold out'
-        return (
-          <div className="card" key={it.id} style={{ opacity: out ? 0.6 : 1 }}>
-            <div className="row"><h2>{it.name}</h2>{label && <span className={'tag ' + (out ? 'out' : 'low')}>{label}</span>}</div>
-            <div className="muted">{it.description}</div>
-            {it.allergens?.length > 0 && <div className="muted">Contains: {it.allergens.join(', ')}</div>}
-            <button className="btn" style={{ marginTop: 10 }} disabled={out || closed || paused} onClick={() => setPicking(it)}>Add</button>
-          </div>
-        )
-      })}
-      {picking && <ItemSheet item={picking} onClose={() => setPicking(null)} onAdd={(line) => { setCart([...cart, line]); setPicking(null) }} />}
-      {count > 0 && !picking && <div className="bar"><button className="btn" onClick={() => setView('checkout')}>Review order ({count})</button></div>}
-    </div>
+    <>
+      <header className="hero">
+        <div className="hero-in">
+          <h1>{session.title}</h1>
+          {session.description && <p className="hero-desc">{session.description}</p>}
+          {session.venue_note && <p className="hero-note">{session.venue_note}</p>}
+        </div>
+      </header>
+      <div className="wrap">
+        {token && <div className="peek"><span>You have an order in.</span><button className="btn ghost" onClick={() => setView('order')}>View order</button></div>}
+        {closed && <div className="banner">Ordering is {session.status === 'upcoming' ? 'not open yet' : 'closed'}. You can still browse the menu.</div>}
+        {!closed && paused && <div className="banner">{session.pause_message || 'Ordering is paused for a moment.'}</div>}
+        <ul className="menu">
+          {items.map((it) => {
+            const label = stockLabel(it, session.low_stock_threshold)
+            const out = label === 'Sold out'
+            return (
+              <li className={'dish' + (out ? ' out' : '')} key={it.id}>
+                <div className="dish-top">
+                  <span className="dish-name">{it.name}</span>
+                  <span className="leader" aria-hidden="true" />
+                  <button className="add" aria-label={`Add ${it.name}`} disabled={out || closed || paused} onClick={() => setPicking(it)}>+</button>
+                </div>
+                {it.description && <p className="dish-desc">{it.description}</p>}
+                <p className="dish-meta">
+                  {label && <span className={'flag ' + (out ? 'flag-out' : 'flag-low')}>{label.toLowerCase()}</span>}
+                  {it.allergens?.length > 0 && <span>contains {it.allergens.join(', ')}</span>}
+                </p>
+              </li>
+            )
+          })}
+        </ul>
+        <p className="fine">Made in a home kitchen. Please check allergens before you order.</p>
+        {picking && <ItemSheet item={picking} onClose={() => setPicking(null)} onAdd={(line) => { setCart([...cart, line]); setPicking(null) }} />}
+        {count > 0 && !picking && <div className="bar"><button className="btn" onClick={() => setView('checkout')}>Review order ({count})</button></div>}
+      </div>
+    </>
   )
 }
 
@@ -239,27 +253,33 @@ function Tracker({ token, onBack, onForget }) {
   return (
     <div className="wrap">
       {offline && <div className="banner">Reconnecting…</div>}
-      <div className="muted">{s.title}</div>
-      <div className="ticket">#{o.ticket_number}</div>
-      <h2>{o.customer_name}</h2>
-
-      {o.status === 'cancelled' ? (
-        <div className="card">This order was cancelled{o.cancelled_by === 'barista' ? ' by a barista' : ''}.</div>
-      ) : (
-        <>
-          <div className="steps">{STEPS.map(([k, label], i) => <div key={k} className={i <= stepIdx ? 'on' : ''}>{label}</div>)}</div>
-          {o.status === 'pending' && <div className="muted">{o.orders_ahead > 0 ? `${o.orders_ahead} order${o.orders_ahead > 1 ? 's' : ''} ahead of you` : "You're next up!"}</div>}
-          {o.status === 'in_progress' && <div className="muted">We're making your order now.</div>}
-          {o.status === 'completed' && <div className="banner"><strong>Ready for pickup!</strong> We'll call “{o.customer_name}, #{o.ticket_number}” and set it on the counter.</div>}
-        </>
-      )}
-
-      <div className="card">
-        {o.items.map((it, i) => (
-          <div key={i}><strong>{it.quantity} × {it.name}</strong>
-            {it.modifiers.length > 0 && <div className="muted">{it.modifiers.map((m) => m.option).join(', ')}</div>}
-            {it.note && <div className="muted">“{it.note}”</div>}</div>
-        ))}
+      <div className="ticket">
+        <div className="ticket-top">
+          <div className="ticket-cafe">{s.title}</div>
+          <div className="ticket-num">#{o.ticket_number}</div>
+          <div className="ticket-name">{o.customer_name}</div>
+        </div>
+        <div className="perf" />
+        <div className="ticket-body">
+          {o.status === 'cancelled' ? (
+            <p style={{ margin: '0 0 10px' }}>This order was cancelled{o.cancelled_by === 'barista' ? ' by a barista' : ''}.</p>
+          ) : (
+            <>
+              <ol className="track">{STEPS.map(([k, label], i) => <li key={k} className={i < stepIdx ? 'done' : i === stepIdx ? 'now' : ''}>{label}</li>)}</ol>
+              {o.status === 'pending' && <p className="muted">{o.orders_ahead > 0 ? `${o.orders_ahead} order${o.orders_ahead > 1 ? 's' : ''} ahead of you` : "You're next up."}</p>}
+              {o.status === 'in_progress' && <p className="muted">We're making your order now.</p>}
+              {o.status === 'completed' && <div className="banner"><strong>Ready for pickup.</strong> We'll call “{o.customer_name}, #{o.ticket_number}” and set it on the counter.</div>}
+            </>
+          )}
+          <div className="lines">
+            {o.items.map((it, i) => (
+              <div className="line" key={i}><b>{it.quantity}×</b>
+                <div>{it.name}
+                  {it.modifiers.length > 0 && <div className="muted">{it.modifiers.map((m) => m.option).join(', ')}</div>}
+                  {it.note && <div className="muted">“{it.note}”</div>}</div></div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {msg && <div className="banner">{msg}</div>}
@@ -267,14 +287,14 @@ function Tracker({ token, onBack, onForget }) {
       {o.status === 'in_progress' && <p className="muted">Need to cancel? Please find a barista.</p>}
 
       {s.tips_enabled && (s.zelle_contact || s.venmo_handle) && o.status !== 'cancelled' && (
-        <div className="card">
-          <strong>Tip jar</strong>
-          <div className="muted">{s.tip_note || 'Tips are never expected, always appreciated.'}</div>
+        <div className="tipjar">
+          <h2>Tip jar</h2>
+          <p className="muted">{s.tip_note || 'Tips are never expected, always appreciated.'}</p>
           {s.zelle_contact && <button className="btn" style={{ marginTop: 8 }} onClick={() => copy(s.zelle_contact)}>Copy Zelle: {s.zelle_contact}</button>}
           {s.venmo_handle && <a href={`https://venmo.com/u/${s.venmo_handle}`} target="_blank" rel="noreferrer"><button className="btn ghost" style={{ marginTop: 8 }}>Venmo @{s.venmo_handle}</button></a>}
         </div>
       )}
-      {s.guestbook_url && o.status === 'completed' && <a href={s.guestbook_url} target="_blank" rel="noreferrer"><button className="btn ghost">Sign the guestbook</button></a>}
+      {s.guestbook_url && o.status === 'completed' && <a href={s.guestbook_url} target="_blank" rel="noreferrer"><button className="btn ghost" style={{ marginTop: 8 }}>Sign the guestbook</button></a>}
 
       <button className="btn ghost" style={{ marginTop: 12 }} onClick={onBack}>{['completed', 'cancelled'].includes(o.status) ? 'Back to menu' : 'View menu'}</button>
       {['completed', 'cancelled'].includes(o.status) && <button className="btn ghost" style={{ marginTop: 8 }} onClick={onForget}>Start a new order</button>}
