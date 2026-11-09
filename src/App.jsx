@@ -33,7 +33,7 @@ function stockLabel(item, threshold) {
   return null
 }
 
-const groupsOf = (item) =>
+export const groupsOf = (item) =>
   (item.menu_item_modifier_groups || []).map((l) => l.modifier_groups).filter(Boolean)
     .sort((a, b) => a.sort_order - b.sort_order)
 
@@ -100,12 +100,12 @@ export default function App() {
         )
       })}
       {picking && <ItemSheet item={picking} onClose={() => setPicking(null)} onAdd={(line) => { setCart([...cart, line]); setPicking(null) }} />}
-      {count > 0 && <div className="bar"><button className="btn" onClick={() => setView('checkout')}>Review order ({count})</button></div>}
+      {count > 0 && !picking && <div className="bar"><button className="btn" onClick={() => setView('checkout')}>Review order ({count})</button></div>}
     </div>
   )
 }
 
-function ItemSheet({ item, onClose, onAdd }) {
+export function ItemSheet({ item, onClose, onAdd }) {
   const groups = groupsOf(item)
   const [picked, setPicked] = useState({}) // groupId -> [optionId]
   const [qty, setQty] = useState(1)
